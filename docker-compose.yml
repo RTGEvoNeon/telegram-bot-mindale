@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: botuser
+      POSTGRES_PASSWORD: botpass
+      POSTGRES_DB: botdb
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  bot:
+    build: .
+    volumes:
+      - ./:/app   # Монтируем весь проект в /app контейнера
+    restart: always
+    depends_on:
+      - db
+    env_file:
+      - .env
+
+volumes:
+  db_data:
