@@ -66,6 +66,7 @@ def start(message):
     args = message.text.split()
     invited_by = int(args[1]) if len(args) > 1 else None
 
+    # Проверяем пользователя в БД
     cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
     user = cursor.fetchone()
 
@@ -81,32 +82,35 @@ def start(message):
             )
         conn.commit()
 
-    # Клавиатура с кнопками
+    # Получаем количество приглашённых
     cursor.execute("SELECT invites_count FROM users WHERE id = %s", (user_id,))
     row = cursor.fetchone()
     invites_count = row['invites_count'] if row else 0
 
+    # Клавиатура с красивым расположением кнопок
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
-    btn_link = types.KeyboardButton("📩 Получить мою ссылку")
-    btn_stats = types.KeyboardButton(f"👥 Мои приглашения ({invites_count})")  # показываем сразу число
-    keyboard.add(btn_link, btn_stats)
-
+    keyboard.row(
+        types.KeyboardButton("📩 Получить мою ссылку")
+    )
+    keyboard.row(
+        types.KeyboardButton(f"👥 Мои приглашения ({invites_count})")
+    )
 
     # Отправляем афишу
-    with open("mindale.jpg", "rb") as photo:  # promo.png — твоя картинка
+    with open("mindale.jpg", "rb") as photo:
         bot.send_photo(
             user_id,
             photo,
-            caption=f"Привет, {username}! 🎉 Участвуй в розыгрыше — подпишись и приглашай друзей!",
-            reply_markup=markup_inline
+            caption=f"Привет, {username}! 🎉 Участвуй в розыгрыше — подпишись и приглашай друзей!"
         )
 
-    # Отдельным сообщением клавиатуру
+    # Отправляем клавиатуру отдельным сообщением
     bot.send_message(
         user_id,
         "Выбери действие 👇",
         reply_markup=keyboard
     )
+
 
 # ====== Кнопка: получить ссылку ======
 @bot.message_handler(func=lambda message: message.text == "📩 Получить мою ссылку")
