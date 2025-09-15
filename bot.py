@@ -82,20 +82,29 @@ def start(message):
         conn.commit()
 
     # Клавиатура с кнопками
+    cursor.execute("SELECT invites_count FROM users WHERE id = %s", (user_id,))
+    row = cursor.fetchone()
+    invites_count = row['invites_count'] if row else 0
+
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
     btn_link = types.KeyboardButton("📩 Получить мою ссылку")
-    btn_stats = types.KeyboardButton("👥 Мои приглашения")
+    btn_stats = types.KeyboardButton(f"👥 Мои приглашения ({invites_count})")  # показываем сразу число
     keyboard.add(btn_link, btn_stats)
 
+
+    # Отправляем афишу
+    with open("mindale.jpg", "rb") as photo:  # promo.png — твоя картинка
+        bot.send_photo(
+            user_id,
+            photo,
+            caption=f"Привет, {username}! 🎉 Участвуй в розыгрыше — подпишись и приглашай друзей!",
+            reply_markup=markup_inline
+        )
+
+    # Отдельным сообщением клавиатуру
     bot.send_message(
         user_id,
-        f"🎉 Привет, {username}!\n\n"
-        f"🎁 Участвуй в розыгрыше 🎁\n"
-        f"1. Подпишись на канал {CHANNEL}\n"
-        f"2. Получи уникальную ссылку для приглашения\n"
-        f"3. Делись ей с друзьями, размещай в историях, группах и выигрывай призы!\n\n"
-        f"10 человек, Кто пригласит больше всего друзей — получит мист Victoria`s Secret подарок! 🏆\n"
-        f"🎁 Главный приз - купон 3000 рублей на букет цветов от Mindale 🎁\n",
+        "Выбери действие 👇",
         reply_markup=keyboard
     )
 
@@ -122,13 +131,17 @@ def get_link(message):
         )
 
 # ====== Кнопка: статистика ======
-@bot.message_handler(func=lambda message: message.text == "👥 Мои приглашения")
-def show_stats(message):
+@bot.message_handler(func=lambda message: message.text.startswith("👥 Мои приглашения"))
+def show_invitees(message):
     user_id = message.from_user.id
-    cursor.execute("SELECT invites_count FROM users WHERE id = %s", (user_id,))
-    row = cursor.fetchone()
-    count = row['invites_count'] if row else 0
-    bot.send_message(user_id, f"📊 Ты пригласил {count} человек(а).")
+    cursor.execute("SELECT username FROM users WHERE invited_by = %s", (user_id,))
+    rows = cursor.fetchall()
+    
+    if rows:
+        invitees = "\n".join([f"- @{row['username']}" if row['username'] else "- (без username)" for row in rows])
+        bot.send_message(user_id, f"📋 Ты пригласил следующих людей:\n{invitees}")
+    else:
+        bot.send_message(user_id, "❌ Пока никто не пришёл по твоей ссылке.")
 
 # ====== Запуск бота ======
 bot.infinity_polling()
