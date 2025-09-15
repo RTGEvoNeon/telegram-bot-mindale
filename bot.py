@@ -48,6 +48,15 @@ CREATE TABLE IF NOT EXISTS users (
 """)
 conn.commit()
 
+# ====== Проверка подписки ======
+def is_subscribed(user_id):
+    try:
+        chat_member = bot.get_chat_member(CHANNEL, user_id)
+        return chat_member.status in ["member", "creator", "administrator"]
+    except Exception as e:
+        print(f"Ошибка проверки подписки: {e}")
+        return False
+
 # ====== /start ======
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -65,48 +74,60 @@ def start(message):
             "INSERT INTO users (id, username, invited_by) VALUES (%s, %s, %s)",
             (user_id, username, invited_by)
         )
-
         if invited_by:
             cursor.execute(
                 "UPDATE users SET invites_count = invites_count + 1 WHERE id = %s",
                 (invited_by,)
             )
-
         conn.commit()
 
-    # Inline кнопка для подписки
-    markup_inline = types.InlineKeyboardMarkup()
-    btn_subscribe = types.InlineKeyboardButton("Подписаться на канал", url=f"https://t.me/{CHANNEL[1:]}")
-    markup_inline.add(btn_subscribe)
-
-    # Reply-клавиатура для кнопки "Мои приглашения"
+    # Клавиатура с кнопками
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=False)
-    btn_stats = types.KeyboardButton("Мои приглашения")
-    keyboard.add(btn_stats)
+    btn_link = types.KeyboardButton("📩 Получить мою ссылку")
+    btn_stats = types.KeyboardButton("👥 Мои приглашения")
+    keyboard.add(btn_link, btn_stats)
 
-    # Сначала отправляем inline кнопки (подписка)
     bot.send_message(
         user_id,
-        f"Привет, {username}!\nЧтобы участвовать, подпишись на канал {CHANNEL}.",
-        reply_markup=markup_inline
-    )
-
-    # Потом отправляем reply-клавиатуру (статистика)
-    bot.send_message(
-        user_id,
-        f"Твоя уникальная ссылка для приглашений:\nhttps://t.me/{bot.get_me().username}?start={user_id}",
+        f"🎉 Привет, {username}!\n\n"
+        f"Участвуй в розыгрыше 🎁\n"
+        f"1. Подпишись на канал {CHANNEL}\n"
+        f"2. Получи уникальную ссылку\n"
+        f"3. Зови друзей и выигрывай призы!\n\n"
+        f"Кто пригласит больше всего друзей — получит главный подарок! 🏆",
         reply_markup=keyboard
     )
 
-@bot.message_handler(func=lambda message: message.text == "Мои приглашения")
+# ====== Кнопка: получить ссылку ======
+@bot.message_handler(func=lambda message: message.text == "📩 Получить мою ссылку")
+def get_link(message):
+    user_id = message.from_user.id
+
+    if is_subscribed(user_id):
+        bot.send_message(
+            user_id,
+            f"✅ Отлично! Ты подписан.\n"
+            f"Вот твоя уникальная ссылка для приглашений:\n"
+            f"https://t.me/{bot.get_me().username}?start={user_id}"
+        )
+    else:
+        markup_inline = types.InlineKeyboardMarkup()
+        btn_subscribe = types.InlineKeyboardButton("Подписаться на канал", url=f"https://t.me/{CHANNEL[1:]}")
+        markup_inline.add(btn_subscribe)
+        bot.send_message(
+            user_id,
+            "❌ Чтобы получить уникальную ссылку, сначала подпишись на канал:",
+            reply_markup=markup_inline
+        )
+
+# ====== Кнопка: статистика ======
+@bot.message_handler(func=lambda message: message.text == "👥 Мои приглашения")
 def show_stats(message):
     user_id = message.from_user.id
     cursor.execute("SELECT invites_count FROM users WHERE id = %s", (user_id,))
     row = cursor.fetchone()
     count = row['invites_count'] if row else 0
-    bot.send_message(user_id, f"Ты пригласил {count} человек(а).")
+    bot.send_message(user_id, f"📊 Ты пригласил {count} человек(а).")
 
 # ====== Запуск бота ======
 bot.infinity_polling()
-
-
