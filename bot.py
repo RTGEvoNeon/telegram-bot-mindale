@@ -95,6 +95,7 @@ def start(message):
     keyboard.row(
         types.KeyboardButton(f"👥 Мои приглашения ({invites_count})")
     )
+    keyboard.row(types.KeyboardButton("🏆 Лидеры"))
 
     # Отправляем афишу
     with open("mindale.jpg", "rb") as photo:
@@ -147,5 +148,29 @@ def show_invitees(message):
     else:
         bot.send_message(user_id, "❌ Пока никто не пришёл по твоей ссылке.")
 
+# ====== Кнопка: лидеры ======
+@bot.message_handler(func=lambda message: message.text == "🏆 Лидеры")
+def show_leaders(message):
+    cursor.execute("""
+        SELECT username, invites_count 
+        FROM users 
+        ORDER BY invites_count DESC 
+        LIMIT 15
+    """)
+    rows = cursor.fetchall()
+
+    if not rows:
+        bot.send_message(message.chat.id, "❌ Пока нет лидеров.")
+        return
+
+    leaders = []
+    for i, row in enumerate(rows, start=1):
+        username = f"@{row['username']}" if row['username'] else "(без username)"
+        leaders.append(f"{i}. {username} — {row['invites_count']} приглашений")
+
+    bot.send_message(
+        message.chat.id,
+        "🏆 Топ-15 пригласителей:\n\n" + "\n".join(leaders)
+    )
 # ====== Запуск бота ======
 bot.infinity_polling()
