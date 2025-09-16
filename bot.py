@@ -163,14 +163,34 @@ def show_leaders(message):
         bot.send_message(message.chat.id, "❌ Пока нет лидеров.")
         return
 
-    leaders = []
-    for i, row in enumerate(rows, start=1):
-        username = f"@{row['username']}" if row['username'] else "(без username)"
-        leaders.append(f"{i}. {username} — {row['invites_count']} приглашений")
+    text_parts = []
+
+    # 🥇 Победитель
+    first = rows[0]
+    first_username = f"@{first['username']}" if first['username'] else "(без username)"
+    text_parts.append(
+        f"🎁 Получает купон **3000₽** и мист *Victoria’s Secret!*\n"
+        f"- {first_username} — {first['invites_count']} приглашений\n"
+    )
+
+    # 🥈 2–10 места
+    if len(rows) > 1:
+        text_parts.append("\n🎁 Получают мист *Victoria’s Secret!*\n")
+        for row in rows[1:10]:
+            username = f"@{row['username']}" if row['username'] else "(без username)"
+            text_parts.append(f"- {username} — {row['invites_count']} приглашений")
+
+    #  Остальные 11–15
+    if len(rows) > 10:
+        text_parts.append("\n🥉 Чуть-чуть не хватает до приза:\n")
+        for row in rows[10:]:
+            username = f"@{row['username']}" if row['username'] else "(без username)"
+            text_parts.append(f"- {username} — {row['invites_count']} приглашений")
 
     bot.send_message(
         message.chat.id,
-        "🏆 Топ-15 пригласителей:\n\n" + "\n".join(leaders)
+        "\n".join(text_parts),
+        parse_mode="Markdown"
     )
 # ====== Запуск бота ======
 bot.infinity_polling()
