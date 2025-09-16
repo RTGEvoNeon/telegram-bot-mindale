@@ -148,50 +148,55 @@ def show_invitees(message):
     else:
         bot.send_message(user_id, "❌ Пока никто не пришёл по твоей ссылке.")
 
-# ====== Кнопка: лидеры ======
 @bot.message_handler(func=lambda message: message.text == "🏆 Лидеры")
 def show_leaders(message):
-    cursor.execute("""
-        SELECT username, invites_count 
-        FROM users 
-        ORDER BY invites_count DESC 
-        LIMIT 15
-    """)
-    rows = cursor.fetchall()
+    try:
+        cursor.execute("""
+            SELECT username, invites_count 
+            FROM users 
+            ORDER BY invites_count DESC 
+            LIMIT 15
+        """)
+        rows = cursor.fetchall()
 
-    if not rows:
-        bot.send_message(message.chat.id, "❌ Пока нет лидеров.")
-        return
+        if not rows:
+            bot.send_message(message.chat.id, "❌ Пока нет лидеров.")
+            return
 
-    text_parts = []
+        text_parts = []
 
-    # 🥇 Победитель
-    first = rows[0]
-    first_username = f"@{first['username']}" if first['username'] else "(без username)"
-    text_parts.append(
-        f"Положение на сегодня, но все может поменяться! 🏆\n\n"
-        f"🎁Получает купон **3000₽** и мист *Victoria’s Secret!*\n"
-        f"- {first_username} — {first['invites_count']} приглашений\n"
-    )
+        # 🥇 Победитель
+        first = rows[0]
+        first_username = f"@{first['username']}" if first['username'] else "(без username)"
+        text_parts.append(
+            "Положение на сегодня, но все может поменяться! 🏆\n\n"
+            "🎁 Получает купон <b>3000₽</b> и мист <i>Victoria’s Secret!</i>\n"
+            f"- {first_username} — {first['invites_count']} приглашений\n"
+        )
 
-    # 🥈 2–10 места
-    if len(rows) > 1:
-        text_parts.append("\n🎁 Получают мист *Victoria’s Secret!*\n")
-        for row in rows[1:10]:
-            username = f"@{row['username']}" if row['username'] else "(без username)"
-            text_parts.append(f"- {username} — {row['invites_count']} приглашений")
+        # 🥈 2–10 места
+        if len(rows) > 1:
+            text_parts.append("\n🎁 Получают мист <i>Victoria’s Secret!</i>\n")
+            for row in rows[1:10]:
+                username = f"@{row['username']}" if row['username'] else "(без username)"
+                text_parts.append(f"- {username} — {row['invites_count']} приглашений")
 
-    #  Остальные 11–15
-    if len(rows) > 10:
-        text_parts.append("\n🥉 Чуть-чуть не хватает до приза:\n")
-        for row in rows[10:]:
-            username = f"@{row['username']}" if row['username'] else "(без username)"
-            text_parts.append(f"- {username} — {row['invites_count']} приглашений")
+        # Остальные 11–15
+        if len(rows) > 10:
+            text_parts.append("\n🥉 Чуть-чуть не хватает до приза:\n")
+            for row in rows[10:]:
+                username = f"@{row['username']}" if row['username'] else "(без username)"
+                text_parts.append(f"- {username} — {row['invites_count']} приглашений")
 
-    bot.send_message(
-        message.chat.id,
-        "\n".join(text_parts),
-        parse_mode="Markdown"
-    )
+        bot.send_message(
+            message.chat.id,
+            "\n".join(text_parts),
+            parse_mode="HTML"
+        )
+
+    except Exception as e:
+        print(f"[show_leaders] Ошибка: {e}")
+        bot.send_message(message.chat.id, f"⚠️ Ошибка при показе лидеров: {e}")
+
 # ====== Запуск бота ======
 bot.infinity_polling()
