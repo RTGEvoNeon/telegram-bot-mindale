@@ -169,7 +169,8 @@ def show_leaders(message):
     first = rows[0]
     first_username = f"@{first['username']}" if first['username'] else "(без username)"
     text_parts.append(
-        f"🎁 Получает купон **3000₽** и мист *Victoria’s Secret!*\n"
+        f"Положение на сегодня, но все может поменяться! 🏆\n\n"
+        f"🎁Получает купон **3000₽** и мист *Victoria’s Secret!*\n"
         f"- {first_username} — {first['invites_count']} приглашений\n"
     )
 
